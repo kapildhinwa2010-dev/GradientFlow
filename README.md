@@ -1,42 +1,51 @@
 # GradientFlow
 
-Layer-wise spectral analysis for deep networks.
+[![CI](https://github.com/kapildhinwa2010-dev/GradientFlow/actions/workflows/ci.yml/badge.svg)](https://github.com/kapildhinwa2010-dev/GradientFlow/actions/workflows/ci.yml)
+[![CI](https://github.com/kapildhinwa2010-dev/GradientFlow/actions/workflows/codeql.yml/badge.svg)](https://github.com/kapildhinwa2010-dev/GradientFlow/actions/workflows/codeql.yml)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
+Screen gradient-flow health of stacked weight layers via condition numbers.
 
 **Part of the [Kapildhinwa2010-dev Toolkit](https://github.com/kapildhinwa2010-dev/Kapildhinwa2010-dev).**
 
-![CI](https://github.com/kapildhinwa2010-dev/GradientFlow/actions/workflows/ci.yml/badge.svg)
-![CodeQL](https://github.com/kapildhinwa2010-dev/GradientFlow/actions/workflows/codeql.yml/badge.svg)
-![Python](https://img.shields.io/badge/python-3.9%2B-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
+## What it does
 
-## ✨ Features
+gradient_health() computes a static spectral proxy per layer: the
+condition number bounds how unevenly gradients scale across input
+directions, and the module labels risk low (<1e3), medium (<1e6) or
+high. flow_report() runs this per layer and names the highest-risk
+layer. No actual gradients are tracked - the header says so honestly.
 
-- Singular-value spectra and effective rank per layer
-- Condition numbers and bottleneck ranking
-- `analyze_model()` reports every layer at once
+## Install
 
-## 📦 Install
+    pip install -r requirements.txt
 
-```bash
-pip install -r requirements.txt
-```
+## Quick start
 
-## 🚀 Quick start
+    from gradientflow import flow_report
 
-```python
-from gradientflow import analyze_model, find_bottlenecks
+    report = flow_report(layers)
+    print(report["highest_risk"], report[report["highest_risk"]]["risk"])
 
-layers = {'a': np.eye(16), 'b': low_rank_matrix}
-reports = analyze_model(layers)
-print(find_bottlenecks(reports, top_k=1))
-```
+## API
 
-## 🧪 Tests
+- gradient_health(weights) - condition_number, effective_rank, risk
+- flow_report(layers) - {name: health} plus highest_risk
+- layer_spectrum, effective_rank, layer_report, analyze_model,
+  find_bottlenecks (shared spectral base)
 
-```bash
-pytest tests/ -v
-```
+## Honest results and limitations
 
-## 📄 License
+- This is a screening signal computed from weights alone, not a
+  measurement of gradients during training. It cannot see optimizer,
+  LR schedule, or data effects.
+- The risk thresholds (1e3 / 1e6) are conventions, not calibrated
+  results; no experiment here links labels to actual training
+  instability.
+- condition_number is inf for numerically singular layers; flow_report
+  handles it but downstream code should too.
 
-MIT — see [LICENSE](LICENSE).
+## License
+
+MIT - see [LICENSE](LICENSE).
