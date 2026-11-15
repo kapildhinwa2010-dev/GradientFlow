@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "GradientFlow"
+version = "1.0.0"
+description = "Gradient flow analysis for training diagnostics"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [{name = "Kapil Dhinwa"}]
+
+[project.urls]
+Homepage = "https://github.com/kapildhinwa2010-dev/GradientFlow"
+
+[tool.setuptools]
+packages = ["gradientflow"]
