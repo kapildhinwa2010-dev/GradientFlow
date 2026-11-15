@@ -18,6 +18,8 @@ __all__ = [
     "layer_report",
     "analyze_model",
     "find_bottlenecks",
+    "gradient_health",
+    "flow_report",
 ]
 
 
@@ -78,3 +80,49 @@ def find_bottlenecks(reports: dict, top_k: int = 1) -> list:
         raise ValueError("top_k must be >= 1")
     ranked = sorted(reports.items(), key=lambda kv: (kv[1]["effective_rank"], kv[0]))
     return [name for name, _ in ranked[:top_k]]
+
+
+def gradient_health(weights: np.ndarray) -> dict:
+    """Spectral proxy for gradient-flow health of one layer.
+
+    NOTE (honest scope): this is a static spectral proxy computed from
+    the weight matrix alone - no actual gradients are tracked. The
+    condition number of a layer bounds how unevenly gradients are
+    scaled across input directions; very large condition numbers are
+    associated with slow or unstable training. Treat the output as a
+    screening signal, not a measurement.
+
+    Returns dict with condition_number, effective_rank and a "risk"
+    label: "low" (cond < 1e3), "medium" (< 1e6), "high" otherwise.
+    """
+    report = layer_report(weights)
+    cond = report["condition_number"]
+    if cond < 1e3:
+        risk = "low"
+    elif cond < 1e6:
+        risk = "medium"
+    else:
+        risk = "high"
+    return {
+        "condition_number": cond,
+        "effective_rank": report["effective_rank"],
+        "risk": risk,
+    }
+
+
+def flow_report(layers: dict) -> dict:
+    """Gradient-flow health for every layer of a {name: matrix} dict.
+
+    Returns dict {layer_name: health dict} plus a "highest_risk" key
+    naming the layer with the largest condition number.
+    """
+    if not layers:
+        raise ValueError("layers must be non-empty")
+    out = {name: gradient_health(w) for name, w in layers.items()}
+    def _cond(entry):
+        c = entry["condition_number"]
+        return c if c != float("inf") else float("1e308")
+    out["highest_risk"] = max(
+        (n for n in layers), key=lambda n: _cond(out[n])
+    )
+    return out
